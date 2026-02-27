@@ -34,8 +34,8 @@ template:
                     name: GitClone
                     identifier: GitClone
                     spec:
-                      repoName: sdk-auth-service
-                      cloneDirectory: /harness/sdk-auth-service
+                      repoName: <+pipeline.variables.REPO_NAME>
+                      cloneDirectory: /harness/<+pipeline.variables.REPO_NAME>
                       build:
                         type: branch
                         spec:
@@ -622,8 +622,8 @@ template:
                     name: GitClone
                     identifier: GitClone
                     spec:
-                      repoName: sdk-auth-service
-                      cloneDirectory: /harness/sdk-auth-service
+                      repoName: <+pipeline.variables.REPO_NAME>
+                      cloneDirectory: /harness/<+pipeline.variables.REPO_NAME>
                       build:
                         type: branch
                         spec:
