@@ -581,7 +581,7 @@ template:
               steps:
                 - step:
                     type: HarnessApproval
-                    name: HarnessApproval_1
+                    name: Feature Flag Selector
                     identifier: HarnessApproval_1
                     spec:
                       approvalMessage: Please select the Feature Flag to be cleaned up from your codebase and approve the pipeline progression
