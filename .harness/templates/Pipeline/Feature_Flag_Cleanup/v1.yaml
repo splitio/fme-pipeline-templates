@@ -607,7 +607,7 @@ template:
                         HFRA_REPO_DIR: /harness/<+steps.metadata.output.outputVariables.repoName>
                         HFRA_FFF_OUTPUT_DIR: <+steps.metadata.output.outputVariables.workdir>
                         HFRA_FME_ADMIN_APIKEY: <+pipeline.variables.FME_ADMIN_APIKEY>
-                        HFRA_FME_WORKSPACE_ID: <+pipeline.variables.FME_WORKSPACE_ID>
+                        HFRA_FME_WORKSPACE_ID: <+pipeline.variables.FME_PROJECT_ID>
                 - step:
                     type: Run
                     name: Generate Prompt
@@ -917,7 +917,7 @@ template:
         description: FME Admin API Key
         required: true
         value: <+input>
-      - name: FME_WORKSPACE_ID
+      - name: FME_PROJECT_ID
         type: String
         description: FME Project Id
         required: true
