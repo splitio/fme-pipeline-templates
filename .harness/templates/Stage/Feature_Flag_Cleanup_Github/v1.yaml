@@ -81,7 +81,7 @@ template:
 
                   export ELEGIBLE_FEATURE_FLAGS="none"
                 envVariables:
-                  REPO_URL: <+pipeline.variables.REPO_URL>
+                  REPO_URL: <+stage.variables.REPO_URL>
                 outputVariables:
                   - name: elegibleFeatureFlags
                     type: String
@@ -128,8 +128,8 @@ template:
                   #!/usr/bin/env bash
                   cat <<EOF > ${HOME}/.netrc
                     machine github.com
-                    login <+pipeline.variables.REPO_USERNAME>
-                    password <+pipeline.variables.REPO_API_TOKEN>
+                    login <+stage.variables.REPO_USERNAME>
+                    password <+stage.variables.REPO_API_TOKEN>
                   EOF
           - step:
               identifier: gitclone
@@ -146,9 +146,9 @@ template:
                   cd /harness/${REPO_NAME}
 
                   git init
-                  git remote add origin <+pipeline.variables.REPO_URL>
-                  git fetch origin <+pipeline.variables.REPO_BRANCH>
-                  git checkout <+pipeline.variables.REPO_BRANCH>
+                  git remote add origin <+stage.variables.REPO_URL>
+                  git fetch origin <+stage.variables.REPO_BRANCH>
+                  git checkout <+stage.variables.REPO_BRANCH>
 
                   ls -l /harness/${REPO_NAME}
                 envVariables:
@@ -164,9 +164,9 @@ template:
 
                   mkdir -p <+steps.metadata.output.outputVariables.workdir>
 
-                  echo "Flag: <+pipeline.variables.FEATURE_FLAG>"
-                  echo "Flag: <+pipeline.variables.TREATMENT>"
-                  echo "Flag: <+pipeline.variables.REASON>"
+                  echo "Flag: <+stage.variables.FEATURE_FLAG>"
+                  echo "Flag: <+stage.variables.TREATMENT>"
+                  echo "Flag: <+stage.variables.REASON>"
 
                   ls -la
           - step:
@@ -181,7 +181,7 @@ template:
                   WORKING_DIR="<+steps.metadata.output.outputVariables.workdir>"
 
                   OUTPUT_TASK="${WORKING_DIR}/task.txt"
-                  FFF_OUTPUT="<+pipeline.variables.FEATURE_FLAG> (treatment=<+pipeline.variables.TREATMENT>; reason=<+pipeline.variables.REASON>)"
+                  FFF_OUTPUT="<+stage.variables.FEATURE_FLAG> (treatment=<+stage.variables.TREATMENT>; reason=<+stage.variables.REASON>)"
 
                   echo "Please execute the following steps:
                     - Wrapped in single quotes, here is an string with the pattern '<feature_flag> (treatment=<treatment>; reason=<reason>)', containing the feature flags from a harness environment, to be removed from code if present (name, treatment & reason why it's elegible to remove): '${FFF_OUTPUT}' 
@@ -212,7 +212,7 @@ template:
                 envVariables:
                   TASK_FILE: <+steps.metadata.output.outputVariables.workdir>/task.txt
                   WORKING_DIRECTORY: /harness
-                  ANTHROPIC_API_KEY: <+pipeline.variables.LLM_AUTH_TOKEN>
+                  ANTHROPIC_API_KEY: <+stage.variables.LLM_AUTH_TOKEN>
                   MAX_ITERATIONS: 250
                 volumes:
                   - name: workspace
@@ -310,7 +310,7 @@ template:
                   HARNESS_COMMITTER_NAME: <+steps.metadata.output.outputVariables.userName>
                   HARNESS_COMMITTER_EMAIL: <+steps.metadata.output.outputVariables.userEmail>
                   HARNESS_REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
-                  REPO_API_TOKEN: <+pipeline.variables.REPO_API_TOKEN>
+                  REPO_API_TOKEN: <+stage.variables.REPO_API_TOKEN>
                   REPO_OWNER: <+steps.metadata.output.outputVariables.repoOwner>
                   REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
               volumes:
