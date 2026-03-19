@@ -255,7 +255,7 @@ template:
                   HARNESS_PROJECT: <+steps.metadata.output.outputVariables.project>
                   HARNESS_COMMITTER_NAME: <+steps.metadata.output.outputVariables.userName>
                   HARNESS_COMMITTER_EMAIL: <+steps.metadata.output.outputVariables.userEmail>
-                  HARNESS_REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
+                  HARNESS_REPO_NAME: <+stage.variables.REPO_NAME>
                   HARNESS_API_TOKEN: <+stage.variables.HARNESS_API_TOKEN>
               volumes:
                 - name: workspace
