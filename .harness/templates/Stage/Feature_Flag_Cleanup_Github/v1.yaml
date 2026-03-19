@@ -51,6 +51,11 @@ template:
                   repoName=$(get_repo_name "$repoUrl")
                   repoOwner=$(get_repo_owner "$repoUrl")
 
+                  # Debug repo metadata
+                  echo "repoUrl=${repoUrl}"
+                  echo "repoName=${repoName}"
+                  echo "repoOwner=${repoOwner}"
+
                   # Repository
                   export METADATA_REPO_NAME=${repoName}
                   export METADATA_REPO_OWNER=${repoOwner}
@@ -111,7 +116,7 @@ template:
                   - name: project
                     type: String
                     value: HARNESS_PROJECT
-              contextType: Pipeline
+            contextType: Pipeline
           - step:
               identifier: createNetrc
               name: Create Netrc
