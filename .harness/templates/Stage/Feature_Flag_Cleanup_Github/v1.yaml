@@ -27,13 +27,339 @@ template:
       execution:
         steps:
           - step:
+              identifier: metadata
+              name: Setting Metadata Up
               type: Run
-              name: Run_1
-              identifier: Run_1
+              timeout: 10m
               spec:
-                shell: Sh
+                shell: Bash
                 command: |-
                   #!/usr/bin/env bash
-
-                  echo "Hello world"
-              description: Some description
+                  
+                  get_repo_name() {
+                    local clean="${1%.git}"
+                    echo "${clean##*/}"
+                  }
+                  
+                  get_repo_owner() {
+                    local clean="${1%.git}"
+                    local owner="${clean%/*}"
+                    echo "${owner##*/}"
+                  }
+                  
+                  repoUrl=${REPO_URL}
+                  repoName=$(get_repo_name "$repoUrl")
+                  repoOwner=$(get_repo_owner "$repoUrl")
+                  
+                  # Repository
+                  export METADATA_REPO_NAME=${repoName}
+                  export METADATA_REPO_OWNER=${repoOwner}
+                  
+                  #Metadata Workdir
+                  export METADATA_WORKDIR="/harness/tempdir"
+                  
+                  
+                  # Url and domain
+                  url="<+pipeline.executionUrl>"
+                  domain=$(echo "$url" | awk -F/ '{print $3}')
+                  export METADATA_DOMAIN="$domain"
+                  export METADATA_BASE_URL="https://$domain"
+                  
+                  # User
+                  export METADATA_USER_NAME="<+pipeline.triggeredBy.name>"
+                  export METADATA_USER_EMAIL="<+pipeline.triggeredBy.email>"
+                  
+                  # Account metadata
+                  export HARNESS_ACCOUNT=<+account.identifier>
+                  export HARNESS_ORG=<+org.identifier>
+                  export HARNESS_PROJECT=<+project.identifier>
+                  
+                  export ELEGIBLE_FEATURE_FLAGS="none"
+                envVariables:
+                  REPO_URL: <+pipeline.variables.REPO_URL>
+                outputVariables:
+                  - name: elegibleFeatureFlags
+                    type: String
+                    value: ELEGIBLE_FEATURE_FLAGS
+                  - name: workdir
+                    type: String
+                    value: METADATA_WORKDIR
+                  - name: repoName
+                    type: String
+                    value: METADATA_REPO_NAME
+                  - name: repoOwner
+                    type: String
+                    value: METADATA_REPO_OWNER
+                  - name: baseUrl
+                    type: String
+                    value: METADATA_BASE_URL
+                  - name: domain
+                    type: String
+                    value: METADATA_DOMAIN
+                  - name: userName
+                    type: String
+                    value: METADATA_USER_NAME
+                  - name: userEmail
+                    type: String
+                    value: METADATA_USER_EMAIL
+                  - name: account
+                    type: String
+                    value: HARNESS_ACCOUNT
+                  - name: organization
+                    type: String
+                    value: HARNESS_ORG
+                  - name: project
+                    type: String
+                    value: HARNESS_PROJECT
+              contextType: Pipeline
+          - step:
+              identifier: createNetrc
+              name: Create Netrc
+              type: Run
+              timeout: 10m
+              spec:
+                shell: Bash
+                command: |-
+                  #!/usr/bin/env bash
+                  cat <<EOF > ${HOME}/.netrc
+                    machine github.com
+                    login <+pipeline.variables.REPO_USERNAME>
+                    password <+pipeline.variables.REPO_API_TOKEN>
+                  EOF
+          - step:
+              identifier: gitclone
+              name: Git clone repo
+              type: Run
+              timeout: 10m
+              spec:
+                shell: Bash
+                command: |
+                  #!/usr/bin/env bash
+                  
+                  echo "/harness/${REPO_NAME}"
+                  mkdir /harness/${REPO_NAME}
+                  cd /harness/${REPO_NAME}
+                  
+                  git init
+                  git remote add origin <+pipeline.variables.REPO_URL>
+                  git fetch origin <+pipeline.variables.REPO_BRANCH>
+                  git checkout <+pipeline.variables.REPO_BRANCH>
+                  
+                  ls -l /harness/${REPO_NAME}
+                envVariables:
+                  REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
+          - step:
+              type: Run
+              name: Stage setup
+              identifier: stage_setup
+              spec:
+                shell: Bash
+                command: |-
+                  #!/usr/bin/env bash
+                  
+                  mkdir -p <+steps.metadata.output.outputVariables.workdir>
+                  
+                  echo "Flag: <+pipeline.variables.FEATURE_FLAG>"
+                  echo "Flag: <+pipeline.variables.TREATMENT>"
+                  echo "Flag: <+pipeline.variables.REASON>"
+                  
+                  ls -la
+          - step:
+              type: Run
+              name: Generate Prompt
+              identifier: Generate_Prompt
+              spec:
+                shell: Bash
+                command: |-
+                  #!/usr/bin/env bash
+                  
+                  WORKING_DIR="<+steps.metadata.output.outputVariables.workdir>"
+                  
+                  OUTPUT_TASK="${WORKING_DIR}/task.txt"
+                  FFF_OUTPUT="<+pipeline.variables.FEATURE_FLAG> (treatment=<+pipeline.variables.TREATMENT>; reason=<+pipeline.variables.REASON>)"
+                  
+                  echo "Please execute the following steps:
+                    - Wrapped in single quotes, here is an string with the pattern '<feature_flag> (treatment=<treatment>; reason=<reason>)', containing the feature flags from a harness environment, to be removed from code if present (name, treatment & reason why it's elegible to remove): '${FFF_OUTPUT}' 
+                    - For the elegible flag:
+                        - Scan the code repository to find files containing references to the flags returned in the prior step. The list of files returned will be referred from now on as the \`pending files list\`.
+                        - For each file in the \`pending file list\`:
+                            - Interact with the filesystem as necessary to read the contents of the file
+                            - If the reference to the flag name is part of an evaluation, proceed as follows:
+                                - Remove all evaluations of the flag, leaving only the source code associated to the elegible treatment for it.
+                                  - If the removed code contains a reference to a variable and there aren't additional references, remove it.
+                                - If the split client is not used for further evaluations in that context, remove it (as well as any package import directives)
+                                - Interact with the filysystem as necessary to write the updated file back overwriting the original one. DO NOT use a different name.
+                            - If it's a public/exported constant, use the name of the constant as a new search target to continue searching the repository for references to it. Add any possible outcome to \`pending-file-list\ so that they're iterated as well within this loop.
+                    - After all files have been updated end the conversation with the next outcome to apply changes in a git repository:
+                        - write a new file named \`${WORKING_DIR}/branch.txt\` with the branch name, should be short, descriptive and have no spaces and ends with a suffix number like a timestamp.
+                        - write a new file named \`${WORKING_DIR}/commit.txt\` with a commit description message.
+                        - write a new file named \`${WORKING_DIR}/pr_title.txt\`
+                        - write a new file named \`${WORKING_DIR}/pr_description.txt\` within a summary about all performed changes." > ${OUTPUT_TASK}
+          - step:
+              type: Plugin
+              name: code-agent
+              identifier: codeagent
+              spec:
+                connectorRef: account.harnessImage
+                registryRef: fme-docker
+                image: sarrubiaharness/ai-code-agent:v1.2.0
+                imagePullPolicy: Always
+                envVariables:
+                  TASK_FILE: <+steps.metadata.output.outputVariables.workdir>/task.txt
+                  WORKING_DIRECTORY: /harness
+                  ANTHROPIC_API_KEY: <+pipeline.variables.LLM_AUTH_TOKEN>
+                  MAX_ITERATIONS: 250
+                volumes:
+                  - name: workspace
+                    mountPath: /harness
+              timeout: 10m
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Retry
+                      spec:
+                        retryCount: 3
+                        retryIntervals:
+                          - 10s
+                          - 20s
+                          - 30s
+                        onRetryFailure:
+                          action:
+                            type: Abort
+          - step:
+              type: Run
+              name: Push PR
+              identifier: Push_PR
+              spec:
+                shell: Bash
+                command: |-
+                  #!/bin/bash
+                  set -ex
+                  
+                  GITHUB_REPO_NAME=${REPO_NAME}
+                  : ${HARNESS_ACCOUNT:?"HARNESS_ACCOUNT environment variable is required"}
+                  : ${HARNESS_ORG:?"HARNESS_ORG environment variable is required"}
+                  : ${HARNESS_PROJECT:?"HARNESS_PROJECT environment variable is required"}
+                  : ${REPO_API_TOKEN:?"REPO_API_TOKEN environment variable is required"}
+                  : ${HARNESS_BASE_URL?="HARNESS_BASE_URL failed to populate from execution URL"}
+                  : ${HARNESS_COMMITTER_NAME:?"HARNESS_COMMITTER_NAME environment variable is required"}
+                  : ${HARNESS_COMMITTER_EMAIL:?"HARNESS_COMMITTER_EMAIL environment variable is required"}
+                  
+                  echo "- Pushing PR in repository '${REPO_NAME}'..."
+                  echo "  - HARNESS_ACCOUNT='${HARNESS_ACCOUNT}'"
+                  echo "  - HARNESS_ORG='${HARNESS_ORG}'"
+                  echo "  - HARNESS_PROJECT='${HARNESS_PROJECT}'"
+                  echo "  - REPO_API_TOKEN='${REPO_API_TOKEN}'"
+                  echo "  - HARNESS_BASE_URL='${HARNESS_BASE_URL}'"
+                  
+                  BRANCH_NAME=$(cat ${WORKING_DIR}/branch.txt)
+                  COMMIT_MESSAGE=$(cat ${WORKING_DIR}/commit.txt)
+                  PR_DESCRIPTION=$(cat ${WORKING_DIR}/pr_description.txt)
+                  PR_TITLE=$(cat ${WORKING_DIR}/pr_title.txt)
+                  GITIGNORE_FILE=".gitignore"
+                  PATTERN=$(basename ${WORKING_DIR})
+                  
+                  cd ${REPO_NAME}
+                  
+                  if ! grep -qxF "$PATTERN" "$GITIGNORE_FILE"; then
+                      echo "$PATTERN" >> "$GITIGNORE_FILE"
+                      echo "✓ Dir '$PATTERN' added to $GITIGNORE_FILE"
+                  else
+                      echo "✓ Dir '$PATTERN' already exist in $GITIGNORE_FILE"
+                  fi
+                  
+                  # as of today, pipelines in QA don't have a git user configured
+                  if ! git config get user.email; then
+                      git config --global user.email "${HARNESS_COMMITTER_EMAIL}"
+                      git config --global user.name "${HARNESS_COMMITTER_NAME}"
+                  fi
+                  
+                  git checkout -b ${BRANCH_NAME}
+                  git add .
+                  git commit -m "${COMMIT_MESSAGE}"
+                  git push origin ${BRANCH_NAME}
+                  
+                  PR_DESCRIPTION_ESCAPED=$(echo "$PR_DESCRIPTION" | jq -Rs .)
+                  
+                  curl -i -X POST \
+                    "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls" \
+                    -H "Accept: application/vnd.github+json" \
+                    -H "Authorization: Bearer ${REPO_API_TOKEN}" \
+                    -H "X-GitHub-Api-Version: 2022-11-28" \
+                    -d @- <<EOF
+                      {
+                        "title":"${PR_TITLE}",
+                        "body":${PR_DESCRIPTION_ESCAPED},
+                        "head":"${BRANCH_NAME}",
+                        "base":"main"
+                      }
+                  EOF
+                envVariables:
+                  WORKING_DIR: <+steps.metadata.output.outputVariables.workdir>
+                  HARNESS_BASE_URL: <+steps.metadata.output.outputVariables.baseUrl>
+                  HARNESS_ACCOUNT: <+steps.metadata.output.outputVariables.account>
+                  HARNESS_ORG: <+steps.metadata.output.outputVariables.organization>
+                  HARNESS_PROJECT: <+steps.metadata.output.outputVariables.project>
+                  HARNESS_COMMITTER_NAME: <+steps.metadata.output.outputVariables.userName>
+                  HARNESS_COMMITTER_EMAIL: <+steps.metadata.output.outputVariables.userEmail>
+                  HARNESS_REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
+                  REPO_API_TOKEN: <+pipeline.variables.REPO_API_TOKEN>
+                  REPO_OWNER: <+steps.metadata.output.outputVariables.repoOwner>
+                  REPO_NAME: <+steps.metadata.output.outputVariables.repoName>
+              volumes:
+                - name: workspace
+                  mountPath: /harness
+        variables:
+          - name: REPO_URL
+            type: String
+            description: Repository Url
+            required: true
+            value: <+input>
+          - name: REPO_BRANCH
+            type: String
+            description: Repository Branch name
+            required: true
+            value: <+input>
+          - name: REPO_API_TOKEN
+            type: String
+            description: Repository API Token
+            required: true
+            value: <+input>
+          - name: REPO_USERNAME
+            type: String
+            description: Repository API Token
+            required: true
+            value: <+input>
+          - name: FME_ADMIN_APIKEY
+            type: String
+            description: FME Admin API Key
+            required: true
+            value: <+input>
+          - name: FME_PROJECT_ID
+            type: String
+            description: FME Project Id
+            required: true
+            value: <+input>
+          - name: FEATURE_FLAG
+            type: String
+            description: The Feature Flag to be removed from the codebase
+            required: true
+            value: <+input>
+          - name: TREATMENT
+            type: String
+            description: The Feature Flag Treatment branch to keep on the codebase
+            required: true
+            value: <+input>
+          - name: REASON
+            type: String
+            description: Short description about why this feature flag will be cleaned up
+            required: true
+            value: <+input>
+          - name: LLM_AUTH_TOKEN
+            type: Secret
+            description: ""
+            required: true
+            default: ANTHROPIC_LLM_AUTH_TOKEN_DEV
+            value: <+input>
