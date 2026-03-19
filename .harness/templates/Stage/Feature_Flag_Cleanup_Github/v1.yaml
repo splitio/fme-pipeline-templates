@@ -311,55 +311,55 @@ template:
               volumes:
                 - name: workspace
                   mountPath: /harness
-  variables:
-    - name: REPO_URL
-      type: String
-      description: Repository Url
-      required: true
-      value: <+input>
-    - name: REPO_BRANCH
-      type: String
-      description: Repository Branch name
-      required: true
-      value: <+input>
-    - name: REPO_API_TOKEN
-      type: String
-      description: Repository API Token
-      required: true
-      value: <+input>
-    - name: REPO_USERNAME
-      type: String
-      description: Repository API Token
-      required: true
-      value: <+input>
-    - name: FME_ADMIN_APIKEY
-      type: String
-      description: FME Admin API Key
-      required: true
-      value: <+input>
-    - name: FME_PROJECT_ID
-      type: String
-      description: FME Project Id
-      required: true
-      value: <+input>
-    - name: FEATURE_FLAG
-      type: String
-      description: The Feature Flag to be removed from the codebase
-      required: true
-      value: <+input>
-    - name: TREATMENT
-      type: String
-      description: The Feature Flag Treatment branch to keep on the codebase
-      required: true
-      value: <+input>
-    - name: REASON
-      type: String
-      description: Short description about why this feature flag will be cleaned up
-      required: true
-      value: <+input>
-    - name: LLM_AUTH_TOKEN
-      type: Secret
-      description: ""
-      required: true
-      default: ANTHROPIC_LLM_AUTH_TOKEN_DEV
-      value: <+input>
+    variables:
+      - name: REPO_URL
+        type: String
+        description: Repository Url
+        required: true
+        value: <+input>
+      - name: REPO_BRANCH
+        type: String
+        description: Repository Branch name
+        required: true
+        value: <+input>
+      - name: REPO_API_TOKEN
+        type: String
+        description: Repository API Token
+        required: true
+        value: <+input>
+      - name: REPO_USERNAME
+        type: String
+        description: Repository API Token
+        required: true
+        value: <+input>
+      - name: FME_ADMIN_APIKEY
+        type: String
+        description: FME Admin API Key
+        required: true
+        value: <+input>
+      - name: FME_PROJECT_ID
+        type: String
+        description: FME Project Id
+        required: true
+        value: <+input>
+      - name: FEATURE_FLAG
+        type: String
+        description: The Feature Flag to be removed from the codebase
+        required: true
+        value: <+input>
+      - name: TREATMENT
+        type: String
+        description: The Feature Flag Treatment branch to keep on the codebase
+        required: true
+        value: <+input>
+      - name: REASON
+        type: String
+        description: Short description about why this feature flag will be cleaned up
+        required: true
+        value: <+input>
+      - name: LLM_AUTH_TOKEN
+        type: Secret
+        description: ""
+        required: true
+        default: ANTHROPIC_LLM_AUTH_TOKEN_DEV
+        value: <+input>
