@@ -1,5 +1,5 @@
 template:
-  name: Feature Flag Clean-up Github
+  name: Feature Flag Clean-up Github Stage
   identifier: Feature_Flag_Cleanup_Github_Stage
   versionLabel: v1
   type: Stage
