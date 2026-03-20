@@ -1,5 +1,5 @@
 template:
-  name: Feature Flag Clean-up
+  name: Feature Flag Clean-up Stage
   identifier: Feature_Flag_Cleanup_Stage
   versionLabel: v1
   type: Stage

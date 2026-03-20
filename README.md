@@ -5,12 +5,20 @@ Ready-to-use pipeline templates for your workflow automation
 
 ### Pipeline Templates
  - Feature Flag Clean-up with Harness Code integration
+   - Name: **Feature Flag Clean-up**
+   - Identifier: `Feature_Flag_Cleanup`
    - Import YAML path: `.harness/templates/Pipeline/Feature_Flag_Cleanup/v1.yaml`
  - Feature Flag Clean-up with Github Repo integration
+   - Name: **Feature Flag Clean-up Github**
+   - Identifier: `Feature_Flag_Cleanup_Github`
    - Import YAML path: `.harness/templates/Pipeline/Feature_Flag_Cleanup_Github/v1.yaml`
 
 ### Stage Templates
-- Feature Flag Clean-up with Harness Code integration
-    - Import YAML path: `.harness/templates/Stage/Feature_Flag_Cleanup/v1.yaml`
-- Feature Flag Clean-up with Github Repo integration
-    - Import YAML path: `.harness/templates/Stage/Feature_Flag_Cleanup_Github/v1.yaml`
+ - Feature Flag Clean-up with Harness Code integration
+   - Name: **Feature Flag Clean-up Stage**
+   - Identifier: `Feature_Flag_Cleanup_Stage`
+   - Import YAML path: `.harness/templates/Stage/Feature_Flag_Cleanup/v1.yaml`
+ - Feature Flag Clean-up with Github Repo integration
+   - Name: **Feature Flag Clean-up Github Stage**
+   - Identifier: `Feature_Flag_Cleanup_Github_Stage`
+   - Import YAML path: `.harness/templates/Stage/Feature_Flag_Cleanup_Github/v1.yaml`
